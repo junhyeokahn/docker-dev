@@ -1,0 +1,51 @@
+services:
+  dev:
+    build:
+      context: ${BUILD_CONTEXT}
+      dockerfile: ${DOCKERFILE_PATH}
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+
+    image: ${IMAGE_NAME}
+    working_dir: ${WORKDIR}
+    stdin_open: true
+    tty: true
+    init: true
+
+    environment:
+      TERM: xterm-256color
+      NVIDIA_DRIVER_CAPABILITIES: "all"
+      DISPLAY: "${DISPLAY}"
+      XAUTHORITY: /tmp/Xauthority
+      ZK_NOTEBOOK_DIR: ${DOCKER_HOME}/notebook
+
+    gpus: all
+
+    volumes:
+      - type: bind
+        source: ${HOST_PROJECT_DIRECTORY}
+        target: /workspace
+
+      - type: bind
+        source: ${HOST_NVIM_DATA_DIRECTORY}
+        target: ${DOCKER_HOME}/.local/share/nvim
+
+      - type: bind
+        source: ${HOST_NVIM_CONFIG_DIRECTORY}
+        target: ${DOCKER_HOME}/.config/nvim
+
+      - type: bind
+        source: ${HOST_NOTEBOOK_DIRECTORY}
+        target: ${DOCKER_HOME}/notebook
+
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+        read_only: true
+
+      - type: bind
+        source: ${HOST_XAUTHORITY_FILE}
+        target: /tmp/Xauthority
+        read_only: true
+
+    command: sleep infinity
