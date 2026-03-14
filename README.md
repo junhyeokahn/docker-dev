@@ -28,109 +28,37 @@ while still letting the project control its own base image.
 
 ---
 
-# Repository Layout
-
-```
-
-docker-dev/
-├── Dockerfile
-├── projects/
-│   └── foo/
-│       ├── docker-compose.yml
-│       └── .env
-└── nvim-data/
-    └── foo/
-
-```
-
----
-
-# Example Configuration
-
-## `.env`
-
-```
-
-BASE_IMAGE=foo-base:local
-
-IMAGE_NAME=foo-dev:local
-CONTAINER_NAME=foo-dev
-
-DEV_USER=dev
-DEV_UID=1000
-DEV_GID=1000
-DOCKER_HOME=/home/dev
-
-WORKDIR=/workspace
-
-HOST_PROJECT_DIRECTORY=/absolute/path/to/foo
-HOST_NVIM_CONFIG_DIRECTORY=/absolute/path/to/nvim
-HOST_NVIM_DATA_DIRECTORY=/absolute/path/to/docker-dev/nvim-data/foo
-HOST_NOTEBOOK_DIRECTORY=/absolute/path/to/notebook
-
-```
+# Note
 
 Matching the container UID/GID with the host user is recommended to avoid permission issues when writing to mounted directories.
 
-You can find your host UID/GID with:
+You can find UID/GID in docker with:
 
 ```
 
-id -u
-id -g
+docker run --rm gr00t-dev sh -c 'getent passwd | awk -F: '\''{printf "user=%s uid=%s gid=%s\n", $1, $3, $4}'\'''
 
 ````
-
----
-
-# Docker Compose
-
-Example `projects/foo/docker-compose.yml`:
-
-```yaml
-services:
-  foo-dev:
-    build:
-      context: ../..
-      dockerfile: Dockerfile
-      args:
-        BASE_IMAGE: ${BASE_IMAGE}
-        DEV_USER: ${DEV_USER}
-        DEV_UID: ${DEV_UID}
-        DEV_GID: ${DEV_GID}
-        DEV_HOME: ${DOCKER_HOME}
-        WORKDIR: ${WORKDIR}
-
-    image: ${IMAGE_NAME}
-    container_name: ${CONTAINER_NAME}
-    working_dir: ${WORKDIR}
-
-    stdin_open: true
-    tty: true
-
-    volumes:
-      - ${HOST_PROJECT_DIRECTORY}:${WORKDIR}
-      - ${HOST_NVIM_CONFIG_DIRECTORY}:${DOCKER_HOME}/.config/nvim
-      - ${HOST_NVIM_DATA_DIRECTORY}:${DOCKER_HOME}/.local/share/nvim
-
-    command: sleep infinity
-````
-
----
 
 # Usage
+
+Build the base image:
+
+```
+docker build -t gr00t-dev -f Dockerfile.base .
+```
 
 From the project directory:
 
 ```
-cd projects/foo
+cd projects/gr00t
 docker compose --env-file .env up -d --build
 ```
 
 Enter the container:
 
 ```
-docker exec -it foo-dev bash
+docker exec -it gr00t-dev bash
 ```
 
 Run Neovim:
@@ -139,34 +67,8 @@ Run Neovim:
 nvim
 ```
 
----
-
-# Workflow
-
-Typical workflow:
-
-1. Build the project base image
+After developing, stop the container:
 
 ```
-docker build -t foo-base:local /path/to/project
+docker compose down
 ```
-
-2. Start the dev container
-
-```
-docker compose up -d --build
-```
-
-3. Enter container
-
-```
-docker exec -it foo-dev bash
-```
-
-4. Run Neovim
-
-```
-nvim
-```
-
-Plugins, Mason binaries, and Tree-sitter parsers will persist between container restarts.

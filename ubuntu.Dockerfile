@@ -54,6 +54,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     npm \
     locales \
+    xclip \
+    xauth \
+    timg \
+    clang \
+    libclang-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Compatibility symlinks for Ubuntu names
@@ -83,7 +88,7 @@ RUN set -eux; \
       arm64) zk_arch="arm64" ;; \
       *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
     esac; \
-    curl -fL "https://github.com/zk-org/zk/releases/download/${ZK_VERSION}/zk-${ZK_VERSION#v}-linux-${zk_arch}.tar.gz" \
+    curl -fL "https://github.com/zk-org/zk/releases/download/${ZK_VERSION}/zk-${ZK_VERSION}-linux-${zk_arch}.tar.gz" \
       -o /tmp/zk.tar.gz; \
     tar -C /usr/local/bin -xzf /tmp/zk.tar.gz zk; \
     chmod +x /usr/local/bin/zk; \
