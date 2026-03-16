@@ -20,6 +20,7 @@ services:
     tty: true
     gpus: all
     command: sleep infinity
+    network_mode: host
 
     environment:
       HOME: ${DOCKER_HOME}
@@ -36,6 +37,11 @@ services:
       XAUTHORITY: /tmp/Xauthority
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: all
+      WANDB_API_KEY: "${WANDB_API_KEY}"
+      HF_HOME: "${HF_HOME}"
+      HF_TOKEN: "${HF_TOKEN}"
+      HF_ENABLE_PARALLEL_LOADING: "YES"
+      HF_PARALLEL_LOADING_WORKERS: 4
 
     volumes:
       - type: bind
@@ -73,3 +79,23 @@ services:
         source: /etc/localtime
         target: /etc/localtime
         read_only: true
+
+      - type: bind
+        source: /etc/timezone
+        target: /etc/timezone
+        read_only: true
+
+        # The following volume is used to persist the Python virtual environment across container restarts.
+      - type: volume
+        source: venv
+        target: ${WORKDIR}/.venv
+        volume:
+          nocopy: true
+
+    post_start:
+      # After the container starts, change the ownership of the virtual environment directory to the development user.
+      - command: chown -R 1000:1000 /workspace/gr00t/.venv
+        user: root
+
+volumes:
+  venv:
