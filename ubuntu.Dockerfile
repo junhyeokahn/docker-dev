@@ -22,22 +22,34 @@ ENV HOME=${DEV_HOME} \
     XDG_STATE_HOME=${DEV_HOME}/.local/state \
     XDG_CACHE_HOME=${DEV_HOME}/.cache \
     CARGO_HOME=${DEV_HOME}/.cargo \
-    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:${PATH}
+    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:${PATH} \
+    APPIMAGE_EXTRACT_AND_RUN=1
 
 SHELL ["/bin/bash", "-lc"]
 
-# Create user/group
+# Create user/group. If a user already exists at DEV_UID (e.g. the default
+# "ubuntu" user on ubuntu:24.04), rename it to DEV_USER and move its home
+# instead of creating a new account.
 RUN set -eux; \
-    if ! getent group "${DEV_GID}" >/dev/null; then \
-        groupadd -g "${DEV_GID}" "${DEV_USER}"; \
-    fi; \
-    if ! id -u "${DEV_USER}" >/dev/null 2>&1; then \
+    existing_user="$(getent passwd "${DEV_UID}" | cut -d: -f1 || true)"; \
+    if [ -n "${existing_user}" ] && [ "${existing_user}" != "${DEV_USER}" ]; then \
+        existing_group="$(getent group "${DEV_GID}" | cut -d: -f1 || true)"; \
+        if [ -n "${existing_group}" ] && [ "${existing_group}" != "${DEV_USER}" ]; then \
+            groupmod -n "${DEV_USER}" "${existing_group}"; \
+        fi; \
+        usermod -l "${DEV_USER}" -d "${DEV_HOME}" -m -s /bin/bash "${existing_user}"; \
+    elif ! id -u "${DEV_USER}" >/dev/null 2>&1; then \
+        if ! getent group "${DEV_GID}" >/dev/null; then \
+            groupadd -g "${DEV_GID}" "${DEV_USER}"; \
+        fi; \
         useradd -m -d "${DEV_HOME}" -s /bin/bash -u "${DEV_UID}" -g "${DEV_GID}" "${DEV_USER}"; \
     fi; \
     mkdir -p "${DEV_HOME}" "${WORKDIR}"
 
-# Grant passwordless sudo to dev user (needed by -bin.sh scripts)
-RUN echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${DEV_USER} \
+# Grant passwordless sudo to dev user (needed by -bin.sh scripts).
+# /etc/sudoers.d may not exist yet on minimal base images.
+RUN mkdir -p /etc/sudoers.d \
+    && echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${DEV_USER} \
     && chmod 0440 /etc/sudoers.d/90-${DEV_USER}
 
 # Base packages
@@ -71,8 +83,15 @@ RUN mkdir -p \
 WORKDIR ${WORKDIR}
 USER ${DEV_USER}
 
-# Install nvim and zk binaries via dotfiles remote installers
-RUN curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/nvim-bin.sh" | bash \
- && curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/zk-bin.sh"  | bash
+# Install nvim and zk binaries via dotfiles remote installers.
+# Download first rather than piping to bash so the scripts can reference
+# BASH_SOURCE[0] under `set -u`.
+RUN set -eux; \
+    tmpdir="$(mktemp -d)"; \
+    curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/nvim-bin.sh" -o "${tmpdir}/nvim-bin.sh"; \
+    curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/zk-bin.sh"   -o "${tmpdir}/zk-bin.sh"; \
+    bash "${tmpdir}/nvim-bin.sh"; \
+    bash "${tmpdir}/zk-bin.sh"; \
+    rm -rf "${tmpdir}"
 
 CMD ["sleep", "infinity"]
