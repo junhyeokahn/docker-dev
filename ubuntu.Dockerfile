@@ -82,8 +82,15 @@ RUN mkdir -p \
 WORKDIR ${WORKDIR}
 USER ${DEV_USER}
 
-# Install nvim and zk binaries via dotfiles remote installers
-RUN curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/nvim-bin.sh" | bash \
- && curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/zk-bin.sh"  | bash
+# Install nvim and zk binaries via dotfiles remote installers.
+# Download first rather than piping to bash so the scripts can reference
+# BASH_SOURCE[0] under `set -u`.
+RUN set -eux; \
+    tmpdir="$(mktemp -d)"; \
+    curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/nvim-bin.sh" -o "${tmpdir}/nvim-bin.sh"; \
+    curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/zk-bin.sh"   -o "${tmpdir}/zk-bin.sh"; \
+    bash "${tmpdir}/nvim-bin.sh"; \
+    bash "${tmpdir}/zk-bin.sh"; \
+    rm -rf "${tmpdir}"
 
 CMD ["sleep", "infinity"]
