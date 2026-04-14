@@ -12,7 +12,7 @@ ARG DEV_GID=1000
 ARG DEV_HOME=/home/${DEV_USER}
 ARG WORKDIR=/workspace
 
-ARG ZK_VERSION=v0.15.2
+ARG DOTFILES_REF=main
 
 ENV HOME=${DEV_HOME} \
     USER=${DEV_USER} \
@@ -36,17 +36,16 @@ RUN set -eux; \
     fi; \
     mkdir -p "${DEV_HOME}" "${WORKDIR}"
 
+# Grant passwordless sudo to dev user (needed by -bin.sh scripts)
+RUN echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${DEV_USER} \
+    && chmod 0440 /etc/sudoers.d/90-${DEV_USER}
+
 # Base packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    git \
     unzip \
     xz-utils \
-    ripgrep \
-    fd-find \
-    bat \
-    fzf \
     build-essential \
     pkg-config \
     python3 \
@@ -54,49 +53,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     npm \
     locales \
-    xclip \
-    xauth \
-    timg \
-    clang \
-    libclang-dev \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
-
-# Compatibility symlinks for Ubuntu names
-RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd || true && \
-    ln -sf /usr/bin/batcat /usr/local/bin/bat || true
-
-# Install Neovim nightly
-RUN set -eux; \
-    arch="$(dpkg --print-architecture)"; \
-    case "${arch}" in \
-      amd64) nvim_arch="x86_64" ;; \
-      arm64) nvim_arch="arm64" ;; \
-      *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
-    esac; \
-    curl -fL "https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-${nvim_arch}.tar.gz" \
-      -o /tmp/nvim-nightly.tar.gz; \
-    rm -rf /opt/nvim-linux-${nvim_arch}; \
-    tar -C /opt -xzf /tmp/nvim-nightly.tar.gz; \
-    ln -sf "/opt/nvim-linux-${nvim_arch}/bin/nvim" /usr/local/bin/nvim; \
-    rm -f /tmp/nvim-nightly.tar.gz
-
-# Install zk
-RUN set -eux; \
-    arch="$(dpkg --print-architecture)"; \
-    case "${arch}" in \
-      amd64) zk_arch="amd64" ;; \
-      arm64) zk_arch="arm64" ;; \
-      *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
-    esac; \
-    curl -fL "https://github.com/zk-org/zk/releases/download/${ZK_VERSION}/zk-${ZK_VERSION}-linux-${zk_arch}.tar.gz" \
-      -o /tmp/zk.tar.gz; \
-    tar -C /usr/local/bin -xzf /tmp/zk.tar.gz zk; \
-    chmod +x /usr/local/bin/zk; \
-    rm -f /tmp/zk.tar.gz
-
-# Install rustup + tree-sitter CLI under the dev user's home
-RUN curl https://sh.rustup.rs -sSf | su - "${DEV_USER}" -c "sh -s -- -y --no-modify-path" && \
-    su - "${DEV_USER}" -c "source '${DEV_HOME}/.cargo/env' && cargo install tree-sitter-cli"
 
 # Create XDG dirs and workspace, then fix ownership
 RUN mkdir -p \
@@ -110,5 +68,9 @@ RUN mkdir -p \
 
 WORKDIR ${WORKDIR}
 USER ${DEV_USER}
+
+# Install nvim and zk binaries via dotfiles remote installers
+RUN curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/nvim-bin.sh" | bash \
+ && curl -fsSL "https://raw.githubusercontent.com/junhyeokahn/dotfiles/${DOTFILES_REF}/install/zk-bin.sh"  | bash
 
 CMD ["sleep", "infinity"]
