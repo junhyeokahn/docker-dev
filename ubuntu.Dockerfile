@@ -22,7 +22,8 @@ ENV HOME=${DEV_HOME} \
     XDG_STATE_HOME=${DEV_HOME}/.local/state \
     XDG_CACHE_HOME=${DEV_HOME}/.cache \
     CARGO_HOME=${DEV_HOME}/.cargo \
-    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:${PATH}
+    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:${PATH} \
+    APPIMAGE_EXTRACT_AND_RUN=1
 
 SHELL ["/bin/bash", "-lc"]
 
