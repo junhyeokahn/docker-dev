@@ -22,7 +22,7 @@ ENV HOME=${DEV_HOME} \
     XDG_STATE_HOME=${DEV_HOME}/.local/state \
     XDG_CACHE_HOME=${DEV_HOME}/.cache \
     CARGO_HOME=${DEV_HOME}/.cargo \
-    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:/opt/nvim-linux-x86_64/bin:/opt/nvim-linux-arm64/bin:${PATH}
+    PATH=${DEV_HOME}/.local/bin:${DEV_HOME}/.cargo/bin:${PATH}
 
 SHELL ["/bin/bash", "-lc"]
 
@@ -51,9 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
-    npm \
     locales \
     sudo \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Create XDG dirs and workspace, then fix ownership

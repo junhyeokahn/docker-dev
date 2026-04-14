@@ -15,6 +15,16 @@ while still letting the project control its own base image.
 
 ---
 
+# Layout
+
+- `ubuntu.Dockerfile` — layers the Neovim dev environment on top of a project-supplied base image (`BASE_IMAGE` build arg).
+- `compose.base.yml` — shared Compose service template (build, XDG env, nvim/notebook/X11/timezone mounts). Project compose files `extends:` this.
+- `projects/<name>/docker-compose.yml` — per-project overlay: image/container name, GPU, networking, project-specific env, extra volumes.
+- `projects/<name>/.env` — per-project config (paths, UID/GID, image name, secrets).
+- `nvim-data/` — host-side persistent Neovim data (plugins, Mason binaries, Tree-sitter parsers).
+
+---
+
 # Features
 
 - Neovim **nightly**
@@ -42,11 +52,7 @@ docker run --rm gr00t-dev sh -c 'getent passwd | awk -F: '\''{printf "user=%s ui
 
 # Usage
 
-Build the base image:
-
-```
-docker build -t gr00t-dev -f Dockerfile.base .
-```
+First, build your project's own base image (provided by the project, e.g. `gr00t-dev`) and reference it via `BASE_IMAGE` in the project's `.env`. This repo's `ubuntu.Dockerfile` layers the Neovim dev environment on top of that base.
 
 From the project directory:
 
@@ -72,3 +78,11 @@ After developing, stop the container:
 ```
 docker compose down
 ```
+
+---
+
+# Adding a new project
+
+1. Create `projects/<name>/` with a `.env` (copy from `projects/gr00t/.env` and adjust `IMAGE_NAME`, `CONTAINER_NAME`, `BASE_IMAGE`, `WORKDIR`, host paths).
+2. Create `projects/<name>/docker-compose.yml` that `extends` `../../compose.base.yml` service `dev`, and add only project-specific bits (GPU, network mode, extra env/volumes, `post_start`).
+3. `cd projects/<name> && docker compose --env-file .env up -d --build`.
