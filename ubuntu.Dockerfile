@@ -45,8 +45,10 @@ RUN set -eux; \
     fi; \
     mkdir -p "${DEV_HOME}" "${WORKDIR}"
 
-# Grant passwordless sudo to dev user (needed by -bin.sh scripts)
-RUN echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${DEV_USER} \
+# Grant passwordless sudo to dev user (needed by -bin.sh scripts).
+# /etc/sudoers.d may not exist yet on minimal base images.
+RUN mkdir -p /etc/sudoers.d \
+    && echo "${DEV_USER} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-${DEV_USER} \
     && chmod 0440 /etc/sudoers.d/90-${DEV_USER}
 
 # Base packages
