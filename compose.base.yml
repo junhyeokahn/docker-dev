@@ -1,0 +1,73 @@
+services:
+  dev:
+    build:
+      context: ${BUILD_CONTEXT}
+      dockerfile: ${DOCKERFILE_PATH}
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+        DEV_USER: ${DEV_USER}
+        DEV_UID: ${DEV_UID}
+        DEV_GID: ${DEV_GID}
+        DEV_HOME: ${DOCKER_HOME}
+        WORKDIR: ${WORKDIR}
+
+    working_dir: ${WORKDIR}
+    stdin_open: true
+    tty: true
+    command: sleep infinity
+
+    environment:
+      HOME: ${DOCKER_HOME}
+      USER: ${DEV_USER}
+      WORKDIR: ${WORKDIR}
+      XDG_CONFIG_HOME: ${DOCKER_HOME}/.config
+      XDG_DATA_HOME: ${DOCKER_HOME}/.local/share
+      XDG_STATE_HOME: ${DOCKER_HOME}/.local/state
+      XDG_CACHE_HOME: ${DOCKER_HOME}/.cache
+      CARGO_HOME: ${DOCKER_HOME}/.cargo
+      ZK_NOTEBOOK_DIR: ${DOCKER_HOME}/notebook
+      TERM: xterm-256color
+      DISPLAY: ${DISPLAY}
+      XAUTHORITY: /tmp/Xauthority
+
+    volumes:
+      - type: bind
+        source: ${HOST_PROJECT_DIRECTORY}
+        target: ${WORKDIR}
+
+      - type: bind
+        source: ${HOST_NVIM_CONFIG_DIRECTORY}
+        target: ${DOCKER_HOME}/.config/nvim
+
+      - type: bind
+        source: ${HOST_NVIM_DATA_DIRECTORY}
+        target: ${DOCKER_HOME}/.local/share/nvim
+
+      - type: bind
+        source: ${HOST_NOTEBOOK_DIRECTORY}
+        target: ${DOCKER_HOME}/notebook
+
+      - type: bind
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
+        read_only: true
+
+      - type: bind
+        source: ${HOME}/.Xauthority
+        target: /tmp/Xauthority
+        read_only: true
+
+      - type: bind
+        source: ${HOME}/.terminfo/x/xterm-kitty
+        target: ${DOCKER_HOME}/.terminfo/x/xterm-kitty
+        read_only: true
+
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+
+      - type: bind
+        source: /etc/timezone
+        target: /etc/timezone
+        read_only: true
