@@ -26,12 +26,21 @@ ENV HOME=${DEV_HOME} \
 
 SHELL ["/bin/bash", "-lc"]
 
-# Create user/group
+# Create user/group. If a user already exists at DEV_UID (e.g. the default
+# "ubuntu" user on ubuntu:24.04), rename it to DEV_USER and move its home
+# instead of creating a new account.
 RUN set -eux; \
-    if ! getent group "${DEV_GID}" >/dev/null; then \
-        groupadd -g "${DEV_GID}" "${DEV_USER}"; \
-    fi; \
-    if ! id -u "${DEV_USER}" >/dev/null 2>&1; then \
+    existing_user="$(getent passwd "${DEV_UID}" | cut -d: -f1 || true)"; \
+    if [ -n "${existing_user}" ] && [ "${existing_user}" != "${DEV_USER}" ]; then \
+        existing_group="$(getent group "${DEV_GID}" | cut -d: -f1 || true)"; \
+        if [ -n "${existing_group}" ] && [ "${existing_group}" != "${DEV_USER}" ]; then \
+            groupmod -n "${DEV_USER}" "${existing_group}"; \
+        fi; \
+        usermod -l "${DEV_USER}" -d "${DEV_HOME}" -m -s /bin/bash "${existing_user}"; \
+    elif ! id -u "${DEV_USER}" >/dev/null 2>&1; then \
+        if ! getent group "${DEV_GID}" >/dev/null; then \
+            groupadd -g "${DEV_GID}" "${DEV_USER}"; \
+        fi; \
         useradd -m -d "${DEV_HOME}" -s /bin/bash -u "${DEV_UID}" -g "${DEV_GID}" "${DEV_USER}"; \
     fi; \
     mkdir -p "${DEV_HOME}" "${WORKDIR}"
