@@ -70,6 +70,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Claude Code CLI (installed globally so it's on PATH for the dev user)
+RUN npm install -g @anthropic-ai/claude-code
+
 # Create XDG dirs and workspace, then fix ownership
 RUN mkdir -p \
     "${XDG_CONFIG_HOME}" \
