@@ -1,3 +1,7 @@
-nvim-data
+nvim-data/*
+!nvim-data/.gitkeep
+!nvim-data/*/
+nvim-data/*/*
+!nvim-data/*/.gitkeep
 .worktrees
 docs/superpowers
